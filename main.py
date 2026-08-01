@@ -30,7 +30,14 @@ else:
 while True:
 
     print("\n===== STUDENT MANAGEMENT SYSTEM =====")
-    
+    print("1️⃣ Add Student")
+    print("2️⃣ View Student")
+    print("3️⃣ Search Student")
+    print("4️⃣ Delete Student")
+    print("5️⃣ Student Statistics")
+    print("6️⃣ Subject Statistics")
+    print("7️⃣ Graphs")
+    print("8️⃣ Exit")     
     choice = input("Enter your choice: ")
 
     if choice == "1":
