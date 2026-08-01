@@ -1,2 +1,7 @@
-name,rollno,marks,grade
-dia,2,56,D
+name,rollno,marks,grade,subject
+dia,2,56,D,
+dia,3,34,Fail,
+Dia,1,80,A,Maths
+Ram,2,42,Fail,Maths
+divya,1,76,B,maths
+Ram,3,89,A,Maths
