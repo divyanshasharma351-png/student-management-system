@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 student_file = "student.csv"
 
 
@@ -33,11 +35,13 @@ while True:
     print("1️⃣ Add Student")
     print("2️⃣ View Student")
     print("3️⃣ Search Student")
-    print("4️⃣ Delete Student")
-    print("5️⃣ Student Statistics")
-    print("6️⃣ Subject Statistics")
-    print("7️⃣ Graphs")
-    print("8️⃣ Exit")     
+    print("4️⃣ Update Student")
+    print("5️⃣ Delete Student")
+    print("6️⃣ Student Statistics")
+    print("7️⃣ Subject Statistics")
+    print("8️⃣ Graphs")
+    print("9️⃣ export to excel")
+    print("🔟 Exit")
     choice = input("Enter your choice: ")
 
     if choice == "1":
@@ -279,6 +283,57 @@ while True:
         else:
             print("❌ Invalid graph choice. Please try again.")
     elif choice == "9":
+
+        if len(students) == 0:
+            print("❌ No students available.")
+            continue
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Students"
+
+        headers = ["Name", "Roll Number", "Subject", "Marks", "Grade"]
+        ws.append(headers)
+        header_fill = PatternFill(fill_type="solid", fgColor="2C3E50")
+        header_font = Font(
+            bold=True,
+            color="FFFFFF",
+            size=12,
+            name="Calibri"
+        )
+        header_alignment = Alignment(horizontal="center", vertical="center")
+
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+
+        for student in students:
+            ws.append([
+                student["name"],
+                student["rollno"],
+                student["subject"],
+                student["marks"],
+                student["grade"]
+            ])
+        for column in ws.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+
+            ws.column_dimensions[column_letter].width = max_length + 4
+        ws.freeze_panes = "A2"
+
+        wb.save("student_report.xlsx")
+
+        print("✅ Excel file created successfully! to student_report.xlsx")
+    elif choice == "10":
 
         print("Thanks for using Student Management System.")
         break
