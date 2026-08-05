@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 
-FILE_NAME = "student.csv"
+FILE_NAME = ""
 
-# Load data
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
     students = df.to_dict("records")

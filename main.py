@@ -5,7 +5,7 @@ import os
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-student_file = "student.csv"
+student_file = ""
 
 
 def calculate_grade(marks):
@@ -21,30 +21,75 @@ def calculate_grade(marks):
         return "D"
     else:
         return "Fail"
-
-
-if os.path.exists(student_file):
-    df = pd.read_csv(student_file)
-    students = df.to_dict(orient="records")
-else:
     students = []
 
 while True:
 
     print("\n===== STUDENT MANAGEMENT SYSTEM =====")
-    print("1️⃣ Add Student")
-    print("2️⃣ View Student")
-    print("3️⃣ Search Student")
-    print("4️⃣ Update Student")
-    print("5️⃣ Delete Student")
-    print("6️⃣ Student Statistics")
-    print("7️⃣ Subject Statistics")
-    print("8️⃣ Graphs")
-    print("9️⃣ export to excel")
-    print("🔟 Exit")
+    print("1️⃣ Create New Student List")
+    print("2️⃣ Open Existing Student List")
+    print("3️⃣ Add Student")
+    print("4️⃣ View Student")
+    print("5️⃣ Search Student")
+    print("6️⃣ Update Student")
+    print("7️⃣ Delete Student")
+    print("8️⃣ Student Statistics")
+    print("9️⃣ Subject Statistics")
+    print("🔟 Graphs")
+    print("1️⃣1️⃣Export Current List to Excel ")
+    print(" 1️⃣2️⃣Exit")
     choice = input("Enter your choice: ")
-
     if choice == "1":
+
+        list_name = input("📁 Enter new student list name: ").strip()
+
+        if list_name == "":
+            print("❌ List name cannot be empty.")
+            continue
+
+        student_file = list_name + ".csv"
+
+        students = []
+
+        df = pd.DataFrame(students)
+        df.to_csv(student_file, index=False)
+
+        print(f"✅ '{student_file}' created successfully!")
+    elif choice == "2":
+        csv_files = []
+
+        for file in os.listdir():
+            if file.endswith(".csv"):
+                csv_files.append(file)
+
+        if len(csv_files) == 0:
+            print("❌ No student lists found.")
+            continue
+
+        print("\n📂 Available Student Lists:")
+
+        for i, file in enumerate(csv_files, start=1):
+            print(f"{i}. {file}")
+
+        try:
+            select = int(input("\nEnter list number: "))
+
+            if select < 1 or select > len(csv_files):
+                print("❌ Invalid choice.")
+                continue
+
+        except ValueError:
+            print("❌ Please enter a number.")
+            continue
+
+        student_file = csv_files[select - 1]
+
+        df = pd.read_csv(student_file)
+
+        students = df.to_dict(orient="records")
+
+        print(f"✅ '{student_file}' opened successfully!")
+    elif choice == "3":
         print("\n========== ADD STUDENT ==========\n")
 
         name = input("📑 Enter Name: ").strip()
@@ -55,7 +100,7 @@ while True:
 
         rollno = input("🪪 Enter Roll Number: ").strip()
 
-        # Check duplicate roll number
+        
         duplicate = False
 
         for student in students:
@@ -100,7 +145,7 @@ while True:
 
         print("\n✅ Student Added Successfully!")
 
-    elif choice == "2":
+    elif choice == "4":
 
         if len(students) == 0:
             print("❌ No students available.")
@@ -117,7 +162,7 @@ while True:
                 print("Grade :", student["grade"])
                 print("=" * 40)
 
-    elif choice == "3":
+    elif choice == "5":
 
         search_rollno = input("Enter roll number to search: ")
 
@@ -139,7 +184,7 @@ while True:
 
         if not found:
             print("❌ Student not found.")
-    elif choice == "4":
+    elif choice == "6":
         update_roll = input("🪪 Enter Roll Number to update: ")
 
         found = False
@@ -181,7 +226,7 @@ while True:
         if not found:
             print("❌ Student not found.")        
 
-    elif choice == "5":
+    elif choice == "7":
 
         delete_roll = input("Enter roll number to delete: ")
 
@@ -202,7 +247,7 @@ while True:
         if not found:
             print("❌ Student not found.")
 
-    elif choice == "6":
+    elif choice == "8":
 
         if len(students) == 0:
             print("❌ No students available.")
@@ -216,7 +261,7 @@ while True:
             print("Lowest Marks :", np.min(marks))
             print("Total Students :", len(students))
 
-    elif choice == "7":
+    elif choice == "9":
 
         subject_name = input("📚 Enter Subject: ").strip()
 
@@ -237,7 +282,7 @@ while True:
             print("Average :", np.mean(subject_marks))
             print("Highest :", np.max(subject_marks))
             print("Lowest :", np.min(subject_marks))
-    elif choice == "8":
+    elif choice == "10":
 
         if len(students) == 0:
             print("❌ No students available.")
@@ -282,7 +327,7 @@ while True:
             continue
         else:
             print("❌ Invalid graph choice. Please try again.")
-    elif choice == "9":
+    elif choice == "11":
 
         if len(students) == 0:
             print("❌ No students available.")
@@ -330,10 +375,12 @@ while True:
             ws.column_dimensions[column_letter].width = max_length + 4
         ws.freeze_panes = "A2"
 
-        wb.save("student_report.xlsx")
+        excel_file = student_file.replace(".csv", ".xlsx")
+        wb.save(excel_file)
 
+        print(f"✅ Excel file saved as '{excel_file}'")
         print("✅ Excel file created successfully! to student_report.xlsx")
-    elif choice == "10":
+    elif choice == "12":
 
         print("Thanks for using Student Management System.")
         break
