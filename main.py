@@ -5,8 +5,15 @@ import os
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.units import inch
+from datetime import datetime
 student_file = ""
-
+students = []
 
 def calculate_grade(marks):
     if marks >= 90:
@@ -37,7 +44,8 @@ while True:
     print("9️⃣ Subject Statistics")
     print("🔟 Graphs")
     print("1️⃣1️⃣Export Current List to Excel ")
-    print(" 1️⃣2️⃣Exit")
+    print("1️⃣2️⃣ Export Current List to PDF")  
+    print("1️⃣3️⃣Exit")
     choice = input("Enter your choice: ")
     if choice == "1":
 
@@ -381,6 +389,71 @@ while True:
         print(f"✅ Excel file saved as '{excel_file}'")
         print("✅ Excel file created successfully! to student_report.xlsx")
     elif choice == "12":
+       
+        if not students:
+            print("❌ No student data available!")
+            continue
+
+        filename = "student_report.pdf"
+        pdf = SimpleDocTemplate(filename)
+
+        elements = []
+        styles = getSampleStyleSheet()
+        title_style = styles["Title"]
+        title_style.alignment = TA_CENTER
+        title_style.textColor = colors.darkblue
+
+        subtitle_style = styles["Heading2"]
+        subtitle_style.alignment = TA_CENTER
+        subtitle_style.textColor = colors.grey
+
+        elements.append(
+            Paragraph("<b>STUDENT MANAGEMENT SYSTEM</b>", title_style)
+        )
+
+        elements.append(
+            Paragraph("Student Performance Report", subtitle_style)
+        )
+
+        elements.append(Paragraph("<br/>", styles["Normal"]))
+        now = datetime.now().strftime("%d %B %Y | %I:%M %p")
+        elements.append(
+            Paragraph(f"<b>Generated on:</b> {now}", styles["Normal"])
+        )
+        elements.append(Paragraph("<br/>", styles["Normal"]))
+
+        data = [["Roll No", "Name", "Subject", "Marks", "Grade"]]
+
+        for student in students:
+            data.append([
+                student["rollno"],
+                student["name"],
+                student["subject"],
+                student["marks"],
+                student["grade"]
+            ])
+
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.darkblue),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 10),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+
+        elements.append(table)
+        elements.append(Paragraph("<br/><br/>", styles["Normal"]))
+
+        now = datetime.now().strftime("%d-%m-%Y %I:%M %p")
+        elements.append(Paragraph(f"<b>Generated on:</b> {now}", styles["Normal"]))
+
+        pdf.build(elements)
+        print("✅ PDF exported successfully!")
+
+    elif choice == "13":
 
         print("Thanks for using Student Management System.")
         break
