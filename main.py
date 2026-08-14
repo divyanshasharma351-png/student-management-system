@@ -1,6 +1,7 @@
 from student import Student, StudentManager
 import pandas as pd
 import numpy as np
+from config import CSV_COLUMNS, PASSING_MARKS
 from excel_export import export_to_excel
 import matplotlib.pyplot as plt
 import os
@@ -51,7 +52,6 @@ while True:
     print("1️⃣3️⃣Exit")
     choice = input("Enter your choice: ")
     if choice == "1":
-
         list_name = input("📁 Enter new student list name: ").strip()
 
         if list_name == "":
@@ -63,13 +63,16 @@ while True:
         students = []
         manager = StudentManager()
 
-        df = pd.DataFrame(
-            columns=["rollno", "name", "subject", "marks", "grade"]
-        )
+        try:
+            df = pd.DataFrame(columns=CSV_COLUMNS)
+            df.to_csv(student_file, index=False)
+            print(f"✅ '{student_file}' created successfully!")
 
-        df.to_csv(student_file, index=False)
+        except Exception as e:
+            print(f"❌ Could not create '{student_file}'.")
+            print(f"Reason: {e}")
+            continue
 
-        print(f"✅ '{student_file}' created successfully!")
     elif choice == "2":
         csv_files = []
 
@@ -77,26 +80,55 @@ while True:
             if file.endswith(".csv"):
                 csv_files.append(file)
 
+
+        if len(csv_files) == 0:
+            print("❌ No student lists available.")
+            continue
+
         print("📂 Available Student Lists:")
 
         for i, file in enumerate(csv_files, 1):
             print(f"{i}. {file}")
 
-        select = int(input("Enter list number: "))
+        try:
+            select = int(input("Enter list number: "))
+
+        except ValueError:
+            print("❌ Please enter a valid number.")
+            continue
+
+        if select < 1 or select > len(csv_files):
+            print("❌ Invalid list number.")
+            continue
 
         student_file = csv_files[select - 1]
 
         try:
             df = pd.read_csv(student_file)
+
+            required_columns = CSV_COLUMNS
+
+            if list(df.columns) != required_columns:
+                print("❌ Invalid student CSV file.")
+                print("Required columns:", required_columns)
+                continue
+
             students = df.to_dict(orient="records")
 
             print(f"✅ '{student_file}' opened successfully!")
+
+        except FileNotFoundError:
+            print(f"❌ File '{student_file}' was not found.")
+            continue
+
+        except pd.errors.EmptyDataError:
+            print(f"❌ '{student_file}' is empty.")
+            continue
 
         except Exception as e:
             print(f"❌ Could not open '{student_file}'.")
             print(f"Reason: {e}")
             continue
-
 
     elif choice == "3":
         print("\n========== ADD STUDENT ==========\n")
