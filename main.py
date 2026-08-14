@@ -1,11 +1,13 @@
+from student import Student, StudentManager
 import pandas as pd
 import numpy as np
+from excel_export import export_to_excel
 import matplotlib.pyplot as plt
 import os
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph
@@ -13,7 +15,8 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import inch
 from datetime import datetime
 student_file = ""
-students = []
+manager = StudentManager()
+students = manager.get_students()
 
 def calculate_grade(marks):
     if marks >= 90:
@@ -58,8 +61,12 @@ while True:
         student_file = list_name + ".csv"
 
         students = []
+        manager = StudentManager()
 
-        df = pd.DataFrame(students)
+        df = pd.DataFrame(
+            columns=["rollno", "name", "subject", "marks", "grade"]
+        )
+
         df.to_csv(student_file, index=False)
 
         print(f"✅ '{student_file}' created successfully!")
@@ -70,33 +77,27 @@ while True:
             if file.endswith(".csv"):
                 csv_files.append(file)
 
-        if len(csv_files) == 0:
-            print("❌ No student lists found.")
-            continue
+        print("📂 Available Student Lists:")
 
-        print("\n📂 Available Student Lists:")
-
-        for i, file in enumerate(csv_files, start=1):
+        for i, file in enumerate(csv_files, 1):
             print(f"{i}. {file}")
 
-        try:
-            select = int(input("\nEnter list number: "))
-
-            if select < 1 or select > len(csv_files):
-                print("❌ Invalid choice.")
-                continue
-
-        except ValueError:
-            print("❌ Please enter a number.")
-            continue
+        select = int(input("Enter list number: "))
 
         student_file = csv_files[select - 1]
 
-        df = pd.read_csv(student_file)
+        try:
+            df = pd.read_csv(student_file)
+            students = df.to_dict(orient="records")
 
-        students = df.to_dict(orient="records")
+            print(f"✅ '{student_file}' opened successfully!")
 
-        print(f"✅ '{student_file}' opened successfully!")
+        except Exception as e:
+            print(f"❌ Could not open '{student_file}'.")
+            print(f"Reason: {e}")
+            continue
+
+
     elif choice == "3":
         print("\n========== ADD STUDENT ==========\n")
 
@@ -138,121 +139,105 @@ while True:
 
         grade = calculate_grade(marks)
 
-        student = {
-            "name": name.title(),
-            "rollno": rollno,
-            "subject": subject.title(),
-            "marks": marks,
-            "grade": grade
-        }
+        student = Student(rollno, name, subject, marks, grade)
+        manager.add_student(student)
 
-        students.append(student)
-
-        df = pd.DataFrame(students)
+        df = pd.DataFrame([student.to_dict() for student in manager.get_students()])
         df.to_csv(student_file, index=False)
 
         print("\n✅ Student Added Successfully!")
 
     elif choice == "4":
-
-        if len(students) == 0:
+        if len(manager.get_students()) == 0:
             print("❌ No students available.")
         else:
             print("\n----- Student List -----")
-            print(f"📊 Total Students: {len(students)}")
+            print(f"📊 Total Students: {len(manager.get_students())}")
             print("=" * 40)
 
-            for student in students:
-                print("Name :", student["name"])
-                print("Roll No :", student["rollno"])
-                print("Subject :", student["subject"])
-                print("Marks :", student["marks"])
-                print("Grade :", student["grade"])
+            for student in manager.get_students():
+                print("Name :", student.name)
+                print("Roll No :", student.rollno)
+                print("Subject :", student.subject)
+                print("Marks :", student.marks)
+                print("Grade :", student.grade)
                 print("=" * 40)
-
     elif choice == "5":
-
         search_rollno = input("Enter roll number to search: ")
 
-        found = False
+        student = manager.search_by_rollno(search_rollno)
 
-        for student in students:
-            if student["rollno"] == search_rollno:
-                print("\n✅ Student Found")
-                print("=" * 40)
-                print("Name :", student["name"])
-                print("Roll No :", student["rollno"])
-                print("Subject :", student["subject"])
-                print("Marks :", student["marks"])
-                print("Grade :", student["grade"])
-                print("=" * 40)
-
-                found = True
-                break
-
-        if not found:
+        if student:
+            print("\n✅ Student Found")
+            print("=" * 40)
+            print("Name :", student.name)
+            print("Roll No :", student.rollno)
+            print("Subject :", student.subject)
+            print("Marks :", student.marks)
+            print("Grade :", student.grade)
+            print("=" * 40)
+        else:
             print("❌ Student not found.")
     elif choice == "6":
         update_roll = input("🪪 Enter Roll Number to update: ")
 
-        found = False
+        student = manager.search_by_rollno(update_roll)
 
-        for student in students:
-            if student["rollno"] == update_roll:
-                print("\nCurrent Details")
-                print("----------------------")
-                print("Name :", student["name"])
-                print("Subject :", student["subject"])
-                print("Marks :", student["marks"])
-                print("Grade :", student["grade"])
+        if student:
 
-                print("\nEnter New Details")
+            print("\nCurrent Details")
+            print("----------------------")
+            print("Name :", student.name)
+            print("Subject :", student.subject)
+            print("Marks :", student.marks)
+            print("Grade :", student.grade)
 
-                student["name"] = input("New Name: ").strip()
-                student["subject"] = input("New Subject: ").strip()
+            print("\nEnter New Details")
 
-                try:
-                    student["marks"] = int(input("New Marks: "))
-                except ValueError:
-                    print("❌ Invalid Marks")
-                    break
+            student.name = input("New Name: ").strip()
+            student.subject = input("New Subject: ").strip()
 
-                if student["marks"] < 0 or student["marks"] > 100:
-                    print("❌ Marks must be between 0 and 100")
-                    break
+            try:
+                student.marks = int(input("New Marks: "))
+            except ValueError:
+                print("❌ Invalid Marks")
+                continue
 
-                student["grade"] = calculate_grade(student["marks"])
+            if student.marks < 0 or student.marks > 100:
+                print("❌ Marks must be between 0 and 100")
+                continue
 
-                df = pd.DataFrame(students)
-                df.to_csv(student_file, index=False)
+            student.grade = calculate_grade(student.marks)
 
-                print("\n✅ Student Updated Successfully!")
+            df = pd.DataFrame([
+                student_record.to_dict()
+                for student_record in manager.get_students()
+            ])
 
-                found = True
-                break
+            df.to_csv(student_file, index=False)
 
-        if not found:
-            print("❌ Student not found.")        
+            print("\n✅ Student Updated Successfully!")
+
+        else:
+            print("❌ Student not found.")
 
     elif choice == "7":
-
         delete_roll = input("Enter roll number to delete: ")
 
-        found = False
+        student = manager.search_by_rollno(delete_roll)
 
-        for student in students:
-            if student["rollno"] == delete_roll:
-                students.remove(student)
+        if student:
+            manager.delete_student(delete_roll)
 
-                df = pd.DataFrame(students)
-                df.to_csv(student_file, index=False)
+            df = pd.DataFrame([
+                student_record.to_dict()
+                for student_record in manager.get_students()
+            ])
 
-                print("✅ Student deleted successfully.")
+            df.to_csv(student_file, index=False)
 
-                found = True
-                break
-
-        if not found:
+            print("✅ Student deleted successfully.")
+        else:
             print("❌ Student not found.")
 
     elif choice == "8":
@@ -337,75 +322,23 @@ while True:
             print("❌ Invalid graph choice. Please try again.")
     elif choice == "11":
 
-        if len(students) == 0:
-            print("❌ No students available.")
-            continue
-
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Students"
-
-        headers = ["Name", "Roll Number", "Subject", "Marks", "Grade"]
-        ws.append(headers)
-        header_fill = PatternFill(fill_type="solid", fgColor="2C3E50")
-        header_font = Font(
-            bold=True,
-            color="FFFFFF",
-            size=12,
-            name="Calibri"
-        )
-        header_alignment = Alignment(horizontal="center", vertical="center")
-
-        for cell in ws[1]:
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = header_alignment
-
-        for student in students:
-            ws.append([
-                student["name"],
-                student["rollno"],
-                student["subject"],
-                student["marks"],
-                student["grade"]
-            ])
-        for column in ws.columns:
-            max_length = 0
-            column_letter = get_column_letter(column[0].column)
-
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-
-            ws.column_dimensions[column_letter].width = max_length + 4
-        ws.freeze_panes = "A2"
-
-        excel_file = student_file.replace(".csv", ".xlsx")
-        wb.save(excel_file)
-
-        print(f"✅ Excel file saved as '{excel_file}'")
-        print("✅ Excel file created successfully! to student_report.xlsx")
+        export_to_excel(students, student_file)
     elif choice == "12":
-       
-        if not students:
-            print("❌ No student data available!")
-            continue
 
-        filename = "student_report.pdf"
+        if len(students) == 0:
+            print("❌ No student data available.")
+            continue
+        filename = student_file.replace(".csv", "_report.pdf")
         pdf = SimpleDocTemplate(filename)
 
         elements = []
         styles = getSampleStyleSheet()
         title_style = styles["Title"]
         title_style.alignment = TA_CENTER
-        title_style.textColor = colors.darkblue
-
+        title_style.textColor = colors.HexColor("#1F3A5F")
         subtitle_style = styles["Heading2"]
         subtitle_style.alignment = TA_CENTER
-        subtitle_style.textColor = colors.grey
+        subtitle_style.textColor = colors.HexColor("#6B7280")
 
         elements.append(
             Paragraph("<b>STUDENT MANAGEMENT SYSTEM</b>", title_style)
@@ -415,12 +348,113 @@ while True:
             Paragraph("Student Performance Report", subtitle_style)
         )
 
-        elements.append(Paragraph("<br/>", styles["Normal"]))
-        now = datetime.now().strftime("%d %B %Y | %I:%M %p")
+        
+
+        marks_list = [float(student["marks"]) for student in students]
+
+        total_students = len(students)
+        average_marks = sum(marks_list) / total_students
+        highest_marks = max(marks_list)
+        lowest_marks = min(marks_list)
+
+        passed = sum(1 for marks in marks_list if marks >= 50)
+        failed = total_students - passed
+
+        summary_title = styles["Heading2"]
+        summary_title.alignment = TA_CENTER
+        summary_title.textColor = colors.HexColor("#1F3A5F")
+
         elements.append(
-            Paragraph(f"<b>Generated on:</b> {now}", styles["Normal"])
+            Paragraph("REPORT SUMMARY", summary_title)
         )
-        elements.append(Paragraph("<br/>", styles["Normal"]))
+
+        elements.append(Spacer(1, 10))
+
+        summary_data = [
+            ["Total Students", "Average Marks", "Highest Marks"],
+            [str(total_students),
+             f"{average_marks:.2f}",
+             f"{highest_marks:.0f}"],
+
+            ["Lowest Marks", "Passed", "Failed"],
+            [f"{lowest_marks:.0f}",
+             str(passed),
+             str(failed)]
+        ]
+
+        summary_table = Table(
+            summary_data,
+            colWidths=[150, 150, 150]
+        )
+
+        summary_table.setStyle(TableStyle([
+
+            ('BACKGROUND', (0, 0), (-1, 0), '#EAF0F6'),
+            ('BACKGROUND', (0, 2), (-1, 2), '#EAF0F6'),
+
+            ('TEXTCOLOR', (0, 0), (-1, -1), '#1F2937'),
+
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
+
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+
+            ('GRID', (0, 0), (-1, -1), 0.5, '#E5E7EB'),
+
+        ]))
+
+        elements.append(summary_table)
+
+        elements.append(Spacer(1, 20))
+       
+        top_student = max(students, key=lambda student: float(student["marks"]))
+
+        top_title = styles["Heading2"]
+        top_title.alignment = TA_CENTER
+        top_title.textColor = colors.HexColor("#1F3A5F")
+
+        elements.append(
+            Paragraph("TOP PERFORMER", top_title)
+        )
+
+        elements.append(Spacer(1, 8))
+
+        top_data = [
+            ["Name", "Subject", "Marks", "Grade"],
+            [
+                top_student["name"],
+                top_student["subject"],
+                str(top_student["marks"]),
+                top_student["grade"]
+            ]
+        ]
+
+        top_table = Table(
+            top_data,
+            colWidths=[150, 150, 75, 75]
+        )
+
+        top_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), '#EAF0F6'),
+            ('TEXTCOLOR', (0, 0), (-1, 0), '#1F3A5F'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+
+            ('GRID', (0, 0), (-1, -1), 0.5, '#D1D5DB'),
+        ]))
+
+        elements.append(top_table)
+
+        elements.append(Spacer(1, 20))
 
         data = [["Roll No", "Name", "Subject", "Marks", "Grade"]]
 
@@ -435,23 +469,38 @@ while True:
 
         table = Table(data)
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.darkblue),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0,0), (-1,0), 10),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black)
+            ('BACKGROUND', (0, 0), (-1, 0), '#1F3A5F'),
+            ('TEXTCOLOR', (0, 0), (-1, 0), '#FFFFFF'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+
+            ('TEXTCOLOR', (0, 1), (-1, -1), '#1F2937'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), ['#FFFFFF', '#F8FAFC']),
+            ('GRID', (0, 0), (-1, -1), 0.3, '#E5E7EB'),
         ]))
 
         elements.append(table)
         elements.append(Paragraph("<br/><br/>", styles["Normal"]))
+        now = datetime.now().strftime("%d %B %Y | %I:%M %p")
 
-        now = datetime.now().strftime("%d-%m-%Y %I:%M %p")
-        elements.append(Paragraph(f"<b>Generated on:</b> {now}", styles["Normal"]))
+        date_style = styles["Normal"]
+        date_style.alignment = TA_CENTER
+        date_style.fontSize = 9
+        date_style.textColor = colors.HexColor("#6B7280")
+
+        elements.append(
+            Paragraph(f"Generated on: {now}", date_style)
+        )
+
+        elements.append(Spacer(1, 18))
 
         pdf.build(elements)
-        print("✅ PDF exported successfully!")
+        print(f"✅ PDF exported successfully! to {filename}")
 
     elif choice == "13":
 
