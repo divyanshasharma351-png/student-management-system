@@ -47,9 +47,10 @@ while True:
     print("8️⃣ Student Statistics")
     print("9️⃣ Subject Statistics")
     print("🔟 Graphs")
-    print("1️⃣1️⃣Export Current List to Excel ")
-    print("1️⃣2️⃣ Export Current List to PDF")  
-    print("1️⃣3️⃣Exit")
+    print("1️⃣1️⃣sort & filter students")
+    print("1️⃣2️⃣Export Current List to Excel ")
+    print("1️⃣3️⃣ Export Current List to PDF")  
+    print("1️⃣4️⃣Exit")
     choice = input("Enter your choice: ")
     if choice == "1":
         list_name = input("📁 Enter new student list name: ").strip()
@@ -105,7 +106,11 @@ while True:
 
         try:
             df = pd.read_csv(student_file)
+            students = df.to_dict(orient="records")
 
+            print("DEBUG:", students)
+
+            print(f"✅ '{student_file}' opened successfully!")
             required_columns = CSV_COLUMNS
 
             if list(df.columns) != required_columns:
@@ -114,6 +119,18 @@ while True:
                 continue
 
             students = df.to_dict(orient="records")
+
+            manager = StudentManager()
+
+            for student_record in students:
+                student = Student(
+                    student_record["rollno"],
+                    student_record["name"],
+                    student_record["subject"],
+                    int(student_record["marks"]),
+                    student_record["grade"]
+                )
+                manager.add_student(student)
 
             print(f"✅ '{student_file}' opened successfully!")
 
@@ -173,7 +190,7 @@ while True:
 
         student = Student(rollno, name, subject, marks, grade)
         manager.add_student(student)
-
+        students.append(student.to_dict())
         df = pd.DataFrame([student.to_dict() for student in manager.get_students()])
         df.to_csv(student_file, index=False)
 
@@ -354,8 +371,175 @@ while True:
             print("❌ Invalid graph choice. Please try again.")
     elif choice == "11":
 
-        export_to_excel(students, student_file)
+        if len(students) == 0:
+            print("❌ No students available.")
+            continue
+
+        print("\n===== SORT & FILTER STUDENTS =====")
+        print("1. Sort by Name")
+        print("2. Sort by Marks (Highest to Lowest)")
+        print("3. Sort by Marks (Lowest to Highest)")
+        print("4. Sort by Roll Number")
+        print("5. Show Passed Students")
+        print("6. Show Failed Students")
+        print("7. Back")
+
+        sort_choice = input("Enter your choice: ")
+
+        if sort_choice == "1":
+
+            sorted_students = sorted(
+                students,
+                key=lambda student: student["name"].lower()
+            )
+
+            print("\n===== STUDENTS SORTED BY NAME =====")
+
+            for student in sorted_students:
+                print(
+                    student["rollno"],
+                    "|",
+                    student["name"],
+                    "|",
+                    student["subject"],
+                    "|",
+                    student["marks"],
+                    "|",
+                    student["grade"]
+                )
+
+        elif sort_choice == "2":
+
+            sorted_students = sorted(
+                students,
+                key=lambda student: float(student["marks"]),
+                reverse=True
+            )
+
+            print("\n===== HIGHEST MARKS FIRST =====")
+
+            for student in sorted_students:
+                print(
+                    student["rollno"],
+                    "|",
+                    student["name"],
+                    "|",
+                    student["subject"],
+                    "|",
+                    student["marks"],
+                    "|",
+                    student["grade"]
+                )
+
+        elif sort_choice == "3":
+
+            sorted_students = sorted(
+                students,
+                key=lambda student: float(student["marks"])
+            )
+
+            print("\n===== LOWEST MARKS FIRST =====")
+
+            for student in sorted_students:
+                print(
+                    student["rollno"],
+                    "|",
+                    student["name"],
+                    "|",
+                    student["subject"],
+                    "|",
+                    student["marks"],
+                    "|",
+                    student["grade"]
+                )
+
+        elif sort_choice == "4":
+
+            sorted_students = sorted(
+                students,
+                key=lambda student: student["rollno"]
+            )
+
+            print("\n===== STUDENTS SORTED BY ROLL NUMBER =====")
+
+            for student in sorted_students:
+                print(
+                    student["rollno"],
+                    "|",
+                    student["name"],
+                    "|",
+                    student["subject"],
+                    "|",
+                    student["marks"],
+                    "|",
+                    student["grade"]
+                )
+
+        elif sort_choice == "5":
+
+            passed_students = []
+
+            for student in students:
+                if float(student["marks"]) >= PASSING_MARKS:
+                    passed_students.append(student)
+
+            print("\n===== PASSED STUDENTS =====")
+
+            if len(passed_students) == 0:
+                print("❌ No passed students.")
+
+            else:
+                for student in passed_students:
+                    print(
+                        student["rollno"],
+                        "|",
+                        student["name"],
+                        "|",
+                        student["subject"],
+                        "|",
+                        student["marks"],
+                        "|",
+                        student["grade"]
+                    )
+
+        elif sort_choice == "6":
+
+            failed_students = []
+
+            for student in students:
+                if float(student["marks"]) < PASSING_MARKS:
+                    failed_students.append(student)
+
+            print("\n===== FAILED STUDENTS =====")
+
+            if len(failed_students) == 0:
+                print("❌ No failed students.")
+
+            else:
+                for student in failed_students:
+                    print(
+                        student["rollno"],
+                        "|",
+                        student["name"],
+                        "|",
+                        student["subject"],
+                        "|",
+                        student["marks"],
+                        "|",
+                        student["grade"]
+                    )
+
+        elif sort_choice == "7":
+            continue
+
+        else:
+            print("❌ Invalid choice.")
+
+    
     elif choice == "12":
+
+        export_to_excel(students, student_file)
+    elif choice == "13":
 
         if len(students) == 0:
             print("❌ No student data available.")
@@ -534,7 +718,7 @@ while True:
         pdf.build(elements)
         print(f"✅ PDF exported successfully! to {filename}")
 
-    elif choice == "13":
+    elif choice == "14":
 
         print("Thanks for using Student Management System.")
         break

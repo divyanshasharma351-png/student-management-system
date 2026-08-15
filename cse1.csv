@@ -1,5 +1,4 @@
-name,rollno,subject,marks,grade
-Divyansha,2,Maths,56,D
-Dia,3,4,35,Fail
-Dia,23,Maths,89,A
-Sia,6,Maths,90,A+
+rollno,name,subject,marks,grade
+1,ana,python,90,A+
+2,krn,python,45,Fail
+3,hrmn,python,87,A
